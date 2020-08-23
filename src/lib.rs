@@ -43,10 +43,13 @@ impl KvStore {
     /// Remove a given key.
     pub fn remove(&mut self, key: String) -> Result<()> {
         let command = Command::remove(key.clone());
-        self.store.remove(&key);
-
-        //write_to_file(&self.path, &self.log, command);
-        Ok(())
+        match self.store.remove(&key) {
+            Some(_x) => {
+                write_to_file(&self.log, command)?;
+                return Ok(());
+            }
+            None => return Err(MyError::KeyNotFound),
+        }
     }
 
     /// Sets the value of a string key to a string.
@@ -56,7 +59,7 @@ impl KvStore {
         let command = Command::set(key.clone(), value.clone());
         self.store.insert(key, value);
 
-        write_to_file(&self.log, command);
+        write_to_file(&self.log, command)?;
 
         Ok(())
     }
@@ -65,6 +68,8 @@ impl KvStore {
     ///
     /// Returns `None` if the given key does not exist.
     pub fn get(&self, key: String) -> Result<String> {
+        let command = Command::get(key.clone());
+        write_to_file(&self.log, command)?;
         match self.store.get(&key).cloned() {
             Some(res) => Ok(res),
             None => Err(MyError::KeyNotFound),
@@ -86,12 +91,13 @@ impl KvStore {
             .append(false)
             .open(&path)?;
 
-        let mut store: HashMap<String, String> = restore_history(&file)?;
+        let store: HashMap<String, String> = restore_history(&file)?;
 
         Ok(KvStore { store, log: file })
     }
 }
 
+/// Private Function that read a log file and returns an in-memory KvStore
 fn restore_history(file: &File) -> Result<HashMap<String, String>> {
     let buf_reader = BufReader::new(file);
     let mut history: Vec<Command> = Vec::new();
@@ -110,27 +116,38 @@ fn restore_history(file: &File) -> Result<HashMap<String, String>> {
         match command {
             Command::Set { key, value } => store.insert(key.to_string(), value.to_string()),
             Command::Remove { key } => store.remove(key),
+            _ => None,
         };
     }
     Ok(store)
 }
 
-fn write_to_file(mut file: &File, command: Command) {
+// Private helper function to write a command to the log file.
+fn write_to_file(mut file: &File, command: Command) -> Result<()> {
     let serialized: String = serde_json::to_string(&command).unwrap();
-    file.write_all(serialized.as_bytes());
-    file.write_all(b"\r\n");
+    file.write_all(serialized.as_bytes())?;
+    file.write_all(b"\r\n")?;
     //std::fs::write(path, serialized).expect("Failed to write tickets to disk.");
+    Ok(())
 }
 
+/// Command is an enum with each possible command of the database. Each enum
+/// command will be serialized to a log file and used as the basis for populating/
+/// updating an in-memory key/value store.
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Command {
     Set { key: String, value: String },
     Remove { key: String },
+    Get { key: String },
 }
 
 impl Command {
     fn set(key: String, value: String) -> Command {
         Command::Set { key, value }
+    }
+
+    fn get(key: String) -> Command {
+        Command::Get { key }
     }
 
     fn remove(key: String) -> Command {
