@@ -18,3 +18,5 @@
 {"Remove":{"key":"1010"}}
 {"Get":{"key":"1010"}}
 {"Get":{"key":"1010"}}
+{"Set":{"key":"key","value":"value"}}
+{"Get":{"key":"key"}}

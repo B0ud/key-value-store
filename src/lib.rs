@@ -22,11 +22,14 @@ pub use errors::{MyError, Result};
 /// Example:
 ///
 /// ```rust
-/// # use kvs::KvStore;
-/// let mut store = KvStore::new();
+///  use kvs::KvStore;
+///  use std::env::current_dir;
+///
+///
+/// let mut store = KvStore::open(current_dir().unwrap()).unwrap();
 /// store.set("key".to_owned(), "value".to_owned());
-/// let val = store.get("key".to_owned());
-/// assert_eq!(val, Some("value".to_owned()));
+/// let val = store.get("key".to_owned()).unwrap().unwrap();
+/// assert_eq!(val, "value".to_owned());
 /// ```
 pub struct KvStore {
     store: HashMap<String, String>,
@@ -69,13 +72,10 @@ impl KvStore {
     /// Gets the string value of a given string key.
     ///
     /// Returns `None` if the given key does not exist.
-    pub fn get(&self, key: String) -> Result<String> {
+    pub fn get(&self, key: String) -> Result<Option<String>> {
         let command = Command::get(key.clone());
         write_to_file(&self.log, command)?;
-        match self.store.get(&key).cloned() {
-            Some(res) => Ok(res),
-            None => Err(MyError::KeyNotFound),
-        }
+        Ok(self.store.get(&key).cloned())
     }
 
     /// Open the KvStore at a given path. Return the KvStore.
@@ -105,13 +105,13 @@ fn restore_history(file: &File) -> Result<HashMap<String, String>> {
     let mut history: Vec<Command> = Vec::new();
     for line in buf_reader.lines() {
         let line = line.unwrap();
-        println!("{}", line);
+        //println!("{}", line);
 
         let history_command: Command =
             serde_json::from_str(&line).expect("Failed to parse serialised data.");
         history.push(history_command);
     }
-    println!("Size of history {:?}", history.len());
+    //println!("Size of history {:?}", history.len());
 
     let mut store: HashMap<String, String> = HashMap::new();
     for command in history.iter() {
