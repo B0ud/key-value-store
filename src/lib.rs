@@ -73,8 +73,8 @@ impl KvStore {
     ///
     /// Returns `None` if the given key does not exist.
     pub fn get(&self, key: String) -> Result<Option<String>> {
-        let command = Command::get(key.clone());
-        write_to_file(&self.log, command)?;
+        //let command = Command::get(key.clone());
+        //write_to_file(&self.log, command)?;
         Ok(self.store.get(&key).cloned())
     }
 
