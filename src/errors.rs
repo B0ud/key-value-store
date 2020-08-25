@@ -1,4 +1,4 @@
-use std::io::{self };
+use std::io::{self};
 
 //Error Management
 #[derive(Fail, Debug)]
@@ -7,6 +7,8 @@ pub enum MyError {
     KeyNotFound,
     #[fail(display = "{}", _0)]
     Io(#[cause] std::io::Error),
+    #[fail(display = "{}", _0)]
+    DeserializeError(#[cause] serde_json::error::Error),
 }
 
 impl From<io::Error> for MyError {
@@ -15,6 +17,12 @@ impl From<io::Error> for MyError {
     }
 }
 
+
+impl From<serde_json::error::Error> for MyError {
+    fn from(err: serde_json::error::Error) -> MyError {
+        MyError::DeserializeError(err)
+    }
+}
 /*impl fmt::Display for MyError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "An error occurred.")

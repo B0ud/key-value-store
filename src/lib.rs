@@ -14,6 +14,8 @@ use std::io::{prelude::*, BufReader, Write};
 use std::path::PathBuf;
 mod errors;
 pub use errors::{MyError, Result};
+use serde_json::StreamDeserializer;
+use serde_json::de::IoRead;
 
 /// The `KvStore` stores string key/value pairs.
 ///
@@ -93,34 +95,32 @@ impl KvStore {
             .append(false)
             .open(&path)?;
 
-        let store: HashMap<String, String> = restore_history(&file)?;
+        let buf_reader = BufReader::new(&file);
+        let stream = serde_json::Deserializer::from_reader(buf_reader).into_iter::<Command>();
+
+        let store: HashMap<String, String> = restore_history(stream)?;
 
         Ok(KvStore { store, log: file })
     }
 }
 
 /// Private Function that read a log file and returns an in-memory KvStore
-fn restore_history(file: &File) -> Result<HashMap<String, String>> {
-    let buf_reader = BufReader::new(file);
-    let mut history: Vec<Command> = Vec::new();
-    for line in buf_reader.lines() {
-        let line = line.unwrap();
-        //println!("{}", line);
+fn restore_history(mut file: StreamDeserializer<IoRead<BufReader<&File>>,Command>) -> Result<HashMap<String, String>> {
 
-        let history_command: Command =
-            serde_json::from_str(&line).expect("Failed to parse serialised data.");
-        history.push(history_command);
-    }
-    //println!("Size of history {:?}", history.len());
+
 
     let mut store: HashMap<String, String> = HashMap::new();
-    for command in history.iter() {
-        match command {
+    while let Some(command) = file.next(){
+        match command? {
             Command::Set { key, value } => store.insert(key.to_string(), value.to_string()),
-            Command::Remove { key } => store.remove(key),
+            Command::Remove { key } => store.remove(key.as_str()),
             _ => None,
         };
-    }
+    };
+    //println!("Size of history {:?}", history.len());
+
+
+
     Ok(store)
 }
 
@@ -148,15 +148,14 @@ impl Command {
         Command::Set { key, value }
     }
 
-    fn get(key: String) -> Command {
-        Command::Get { key }
-    }
+    // fn get(key: String) -> Command {
+    //     Command::Get { key }
+    // }
 
     fn remove(key: String) -> Command {
         Command::Remove { key }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

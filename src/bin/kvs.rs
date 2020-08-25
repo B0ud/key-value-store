@@ -1,5 +1,5 @@
 use clap::Clap;
-use kvs::{self, KvStore, Result, MyError};
+use kvs::{self, KvStore, MyError, Result};
 use std::env::current_dir;
 
 #[derive(Debug, Clap)]
@@ -57,7 +57,7 @@ fn main() -> Result<()> {
             let result = kvs.remove(key.clone());
             match result {
                 Ok(_x) => {
-                   //println!("Record was removed, key : {}", key);
+                    //println!("Record was removed, key : {}", key);
                     std::process::exit(0);
                 }
                 Err(e) => {
@@ -69,9 +69,9 @@ fn main() -> Result<()> {
         Command::Set(set_parameter) => {
             let result = kvs.set(set_parameter.key.clone(), set_parameter.value.clone());
 
-            match  result {
+            match result {
                 Ok(_x) => {
-                   //println!("Record was saved, key : {}, value : {}" , set_parameter.key, set_parameter.value);
+                    //println!("Record was saved, key : {}, value : {}" , set_parameter.key, set_parameter.value);
                     std::process::exit(0);
                 }
                 Err(e) => {
