@@ -17,7 +17,6 @@ impl From<io::Error> for MyError {
     }
 }
 
-
 impl From<serde_json::error::Error> for MyError {
     fn from(err: serde_json::error::Error) -> MyError {
         MyError::DeserializeError(err)

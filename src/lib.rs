@@ -14,8 +14,8 @@ use std::io::{prelude::*, BufReader, Write};
 use std::path::PathBuf;
 mod errors;
 pub use errors::{MyError, Result};
-use serde_json::StreamDeserializer;
 use serde_json::de::IoRead;
+use serde_json::StreamDeserializer;
 
 /// The `KvStore` stores string key/value pairs.
 ///
@@ -40,12 +40,10 @@ pub struct KvStore {
 
 impl KvStore {
     /// Creates a `KvStore`.
-    // pub fn new() -> Self {
-    //    Self {
-    //        store: HashMap::new()
-    //
-    //    }
-    //}
+    pub fn new() -> Result<Self> {
+        let cwd = std::env::current_dir()?;
+        KvStore::open(cwd.as_path())
+    }
 
     /// Remove a given key.
     pub fn remove(&mut self, key: String) -> Result<()> {
@@ -105,21 +103,18 @@ impl KvStore {
 }
 
 /// Private Function that read a log file and returns an in-memory KvStore
-fn restore_history(mut file: StreamDeserializer<IoRead<BufReader<&File>>,Command>) -> Result<HashMap<String, String>> {
-
-
-
+fn restore_history(
+    mut file: StreamDeserializer<IoRead<BufReader<&File>>, Command>,
+) -> Result<HashMap<String, String>> {
     let mut store: HashMap<String, String> = HashMap::new();
-    while let Some(command) = file.next(){
+    while let Some(command) = file.next() {
         match command? {
             Command::Set { key, value } => store.insert(key.to_string(), value.to_string()),
             Command::Remove { key } => store.remove(key.as_str()),
             _ => None,
         };
-    };
+    }
     //println!("Size of history {:?}", history.len());
-
-
 
     Ok(store)
 }

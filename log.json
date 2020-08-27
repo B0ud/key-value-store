@@ -20,3 +20,5 @@
 {"Get":{"key":"1010"}}
 {"Set":{"key":"key","value":"value"}}
 {"Get":{"key":"key"}}
+{"Set":{"key":"titit","value":"otot"}}
+{"Remove":{"key":"titit"}}
