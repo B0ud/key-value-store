@@ -2,15 +2,15 @@
 
 //! Simple in-memory key/value storee responds to command line arguments
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::fs::File;
 use std::fs::OpenOptions;
-use std::io::{prelude::*, BufReader, Write};
+use std::fs::{read, File};
+use std::io::{prelude::*, BufReader, BufWriter, SeekFrom, Write};
 use std::path::PathBuf;
 mod errors;
 pub use errors::{MyError, Result};
@@ -35,7 +35,10 @@ use serde_json::StreamDeserializer;
 /// ```
 pub struct KvStore {
     store: HashMap<String, String>,
-    log: File,
+    writer: BufWriter<File>,
+    reader: BufReader<File>,
+    index: HashMap<String, u64>,
+    path: PathBuf,
 }
 
 impl KvStore {
@@ -50,7 +53,7 @@ impl KvStore {
         let command = Command::remove(key.clone());
         match self.store.remove(&key) {
             Some(_x) => {
-                write_to_file(&self.log, command)?;
+                //self.write_to_file(command)?;
                 return Ok(());
             }
             None => return Err(MyError::KeyNotFound),
@@ -62,20 +65,39 @@ impl KvStore {
     /// If the key already exists, the previous value will be overwritten.
     pub fn set(&mut self, key: String, value: String) -> Result<()> {
         let command = Command::set(key.clone(), value.clone());
-        self.store.insert(key, value);
-
-        write_to_file(&self.log, command)?;
-
+        self.store.insert(key.clone(), value.clone());
+        let current_offset = self.writer.seek(SeekFrom::End(0))?;
+        serde_json::to_writer(&mut self.writer, &command)?;
+        //self.writer.write_all(b"\r\n")?;
+        self.writer.flush()?;
+        self.index.insert(key.clone(), current_offset);
+        //self.write_to_file(command)?;
+        println!("{:?}", self.index);
         Ok(())
     }
 
     /// Gets the string value of a given string key.
     ///
     /// Returns `None` if the given key does not exist.
-    pub fn get(&self, key: String) -> Result<Option<String>> {
-        //let command = Command::get(key.clone());
-        //write_to_file(&self.log, command)?;
-        Ok(self.store.get(&key).cloned())
+    pub fn get(&mut self, key: String) -> Result<Option<String>> {
+        self.reader.seek(SeekFrom::Start(0))?;
+        println!("vector {:?}", self.index );
+        if let Some(offset) = self.index.get(&key).cloned() {
+            self.reader.seek(SeekFrom::Start(offset));
+
+            let mut de = serde_json::Deserializer::from_reader(&mut self.reader);
+            let cmd: Command = serde::de::Deserialize::deserialize(&mut de)?;
+
+            if let Command::Set { value, .. } = cmd {
+                Ok(Some(value))
+            } else {
+                Err(MyError::KeyNotFound)
+            }
+        } else {
+            Ok(None)
+        }
+
+        //Ok(self.store.get(&key).cloned())
     }
 
     /// Open the KvStore at a given path. Return the KvStore.
@@ -87,45 +109,64 @@ impl KvStore {
         path.set_extension("json");
 
         let file = OpenOptions::new()
-            .read(true)
             .write(true)
             .create(true)
             .append(false)
             .open(&path)?;
 
-        let buf_reader = BufReader::new(&file);
-        let stream = serde_json::Deserializer::from_reader(buf_reader).into_iter::<Command>();
+        let mut buf_reader = BufReader::new(OpenOptions::new().read(true).open(&path)?);
+        let mut buf_writer = BufWriter::new(file);
 
-        let store: HashMap<String, String> = restore_history(stream)?;
-
-        Ok(KvStore { store, log: file })
+        Ok(KvStore {
+            store: HashMap::new(),
+            writer: buf_writer,
+            reader: buf_reader,
+            index: HashMap::new(),
+            path,
+        })
     }
+
+    pub fn read_file(&mut self) -> Result<()> {
+        let mut buf_reader = BufReader::new(OpenOptions::new().read(true).open(&self.path)?);
+        let mut offset = buf_reader.seek(SeekFrom::Start(0))?;
+
+        let mut stream =
+            serde_json::Deserializer::from_reader(buf_reader).into_iter::<Command>();
+
+        while let Some(command) = stream.next() {
+            let new_pos = stream.byte_offset() as u64;
+            match command? {
+                Command::Set { key, value } => {
+                    self.store.insert(key.to_string(), value.to_string());
+                    self.index.insert(key.to_string(), offset);
+                }
+                Command::Remove { key } => {
+                    self.store.remove(key.as_str());
+                    self.index.remove(key.as_str());
+                }
+            };
+            offset = new_pos;
+        }
+        Ok(())
+    }
+
 }
 
 /// Private Function that read a log file and returns an in-memory KvStore
 fn restore_history(
-    mut file: StreamDeserializer<IoRead<BufReader<&File>>, Command>,
+    mut file: StreamDeserializer<IoRead<BufReader<File>>, Command>,
+    buf_reader: BufReader<File>,
 ) -> Result<HashMap<String, String>> {
     let mut store: HashMap<String, String> = HashMap::new();
     while let Some(command) = file.next() {
         match command? {
             Command::Set { key, value } => store.insert(key.to_string(), value.to_string()),
             Command::Remove { key } => store.remove(key.as_str()),
-            _ => None,
         };
     }
     //println!("Size of history {:?}", history.len());
 
     Ok(store)
-}
-
-// Private helper function to write a command to the log file.
-fn write_to_file(mut file: &File, command: Command) -> Result<()> {
-    let serialized: String = serde_json::to_string(&command).unwrap();
-    file.write_all(serialized.as_bytes())?;
-    file.write_all(b"\r\n")?;
-    //std::fs::write(path, serialized).expect("Failed to write tickets to disk.");
-    Ok(())
 }
 
 /// Command is an enum with each possible command of the database. Each enum
@@ -135,7 +176,6 @@ fn write_to_file(mut file: &File, command: Command) -> Result<()> {
 pub enum Command {
     Set { key: String, value: String },
     Remove { key: String },
-    Get { key: String },
 }
 
 impl Command {
