@@ -2,21 +2,20 @@
 
 //! Simple in-memory key/value storee responds to command line arguments
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap};
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::ops::Range;
 use std::fs::OpenOptions;
-use std::fs::{read, File};
+use std::fs::{ File};
 use std::io::{prelude::*, BufReader, BufWriter, SeekFrom, Write};
+use std::ops::Range;
 use std::path::PathBuf;
 mod errors;
 pub use errors::{MyError, Result};
-use serde_json::de::IoRead;
-use serde_json::StreamDeserializer;
+
 
 /// The `KvStore` stores string key/value pairs.
 ///
@@ -25,20 +24,23 @@ use serde_json::StreamDeserializer;
 /// Example:
 ///
 /// ```rust
-///  use kvs::KvStore;
-///  use std::env::current_dir;
+/// # use kvs::{MyError, Result};
+/// # use kvs::KvStore;
+/// # use std::env::current_dir;
+/// # fn try_main() -> Result<()> {
 ///
-///
-/// let mut store = KvStore::open(current_dir().unwrap()).unwrap();
+/// let mut store = KvStore::new()?;
 /// store.set("key".to_owned(), "value".to_owned());
-/// let val = store.get("key".to_owned()).unwrap().unwrap();
-/// assert_eq!(val, "value".to_owned());
+/// let val = store.get("key".to_owned())?;
+/// assert_eq!(val, Some("value".to_owned()));
+///
+/// # Ok(())
+/// # }
 /// ```
 pub struct KvStore {
-    store: HashMap<String, String>,
     writer: BufWriter<File>,
     reader: BufReader<File>,
-    index: HashMap<String, Pointer>,
+    index: BTreeMap<String, Pointer>,
     path: PathBuf,
 }
 
@@ -51,10 +53,13 @@ impl KvStore {
 
     /// Remove a given key.
     pub fn remove(&mut self, key: String) -> Result<()> {
+        self.writer.seek(SeekFrom::End(0))?;
         let command = Command::remove(key.clone());
-        match self.store.remove(&key) {
+        match self.index.remove(&key) {
             Some(_x) => {
-                //self.write_to_file(command)?;
+                serde_json::to_writer(&mut self.writer, &command)?;
+                self.writer.write_all(b"\r\n")?;
+                self.writer.flush()?;
                 return Ok(());
             }
             None => return Err(MyError::KeyNotFound),
@@ -66,14 +71,13 @@ impl KvStore {
     /// If the key already exists, the previous value will be overwritten.
     pub fn set(&mut self, key: String, value: String) -> Result<()> {
         let command = Command::set(key.clone(), value.clone());
-        self.store.insert(key.clone(), value.clone());
         let initial_offset = self.writer.seek(SeekFrom::End(0))?;
         serde_json::to_writer(&mut self.writer, &command)?;
         self.writer.write_all(b"\r\n")?;
         self.writer.flush()?;
         let new_offset = self.writer.seek(SeekFrom::End(0))?;
-        self.index.insert(key.clone(), (initial_offset .. new_offset ).into());
-        println!("{:?}", self.index);
+        self.index
+            .insert(key.clone(), (initial_offset..new_offset).into());
         Ok(())
     }
 
@@ -82,14 +86,10 @@ impl KvStore {
     /// Returns `None` if the given key does not exist.
     pub fn get(&mut self, key: String) -> Result<Option<String>> {
         self.reader.seek(SeekFrom::Start(0))?;
-        println!("vector {:?}", self.index );
         if let Some(pointer) = self.index.get(&key) {
             self.reader.seek(SeekFrom::Start(pointer.pos))?;
-
-            let mut de   = serde_json::Deserializer::from_reader(&mut self.reader);
-            let cmd: Command = serde::de::Deserialize::deserialize(&mut de)?;
-
-            if let Command::Set { value, .. } = cmd {
+            let cmd_reader = (&mut self.reader).take(pointer.len);
+            if let Command::Set { value, .. } = serde_json::from_reader(cmd_reader)? {
                 Ok(Some(value))
             } else {
                 Err(MyError::KeyNotFound)
@@ -97,8 +97,6 @@ impl KvStore {
         } else {
             Ok(None)
         }
-
-        //Ok(self.store.get(&key).cloned())
     }
 
     /// Open the KvStore at a given path. Return the KvStore.
@@ -115,14 +113,10 @@ impl KvStore {
             .append(false)
             .open(&path)?;
 
-        let mut buf_reader = BufReader::new(OpenOptions::new().read(true).open(&path)?);
-        let mut buf_writer = BufWriter::new(file);
-
         let mut kv = KvStore {
-            store: HashMap::new(),
-            writer: buf_writer,
-            reader: buf_reader,
-            index: HashMap::new(),
+            writer: BufWriter::new(file),
+            reader: BufReader::new(OpenOptions::new().read(true).open(&path)?),
+            index: BTreeMap::new(),
             path,
         };
 
@@ -130,22 +124,21 @@ impl KvStore {
         Ok(kv)
     }
 
+    /// Read file and load history of command from the log
     pub fn read_file(&mut self) -> Result<()> {
         let mut buf_reader = BufReader::new(OpenOptions::new().read(true).open(&self.path)?);
         let mut initial_offset = buf_reader.seek(SeekFrom::Start(0))?;
 
-        let mut stream =
-            serde_json::Deserializer::from_reader(buf_reader).into_iter::<Command>();
+        let mut stream = serde_json::Deserializer::from_reader(buf_reader).into_iter::<Command>();
 
         while let Some(command) = stream.next() {
             let new_offset = stream.byte_offset() as u64;
             match command? {
-                Command::Set { key, value } => {
-                    self.store.insert(key.to_string(), value.to_string());
-                    self.index.insert(key.to_string(), (initial_offset .. new_offset).into());
+                Command::Set { key, .. } => {
+                    self.index
+                        .insert(key.to_string(), (initial_offset..new_offset).into());
                 }
                 Command::Remove { key } => {
-                    self.store.remove(key.as_str());
                     self.index.remove(key.as_str());
                 }
             };
@@ -153,7 +146,6 @@ impl KvStore {
         }
         Ok(())
     }
-
 }
 
 /// Command is an enum with each possible command of the database. Each enum
@@ -183,11 +175,11 @@ impl Command {
 #[derive(Clone, Debug)]
 struct Pointer {
     pos: u64,
-    len: u64
+    len: u64,
 }
 
-impl From<(Range<u64>)> for Pointer {
-    fn from((range): (Range<u64>)) -> Self {
+impl From<Range<u64>> for Pointer {
+    fn from(range: Range<u64>) -> Self {
         Pointer {
             pos: range.start,
             len: range.end - range.start,
