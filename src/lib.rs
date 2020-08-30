@@ -8,6 +8,7 @@ extern crate failure;
 extern crate failure_derive;
 use serde::{Deserialize, Serialize};
 use serde_json;
+use std::ops::Range;
 use std::fs::OpenOptions;
 use std::fs::{read, File};
 use std::io::{prelude::*, BufReader, BufWriter, SeekFrom, Write};
@@ -37,7 +38,7 @@ pub struct KvStore {
     store: HashMap<String, String>,
     writer: BufWriter<File>,
     reader: BufReader<File>,
-    index: HashMap<String, u64>,
+    index: HashMap<String, Pointer>,
     path: PathBuf,
 }
 
@@ -66,11 +67,12 @@ impl KvStore {
     pub fn set(&mut self, key: String, value: String) -> Result<()> {
         let command = Command::set(key.clone(), value.clone());
         self.store.insert(key.clone(), value.clone());
-        let current_offset = self.writer.seek(SeekFrom::End(0))?;
+        let initial_offset = self.writer.seek(SeekFrom::End(0))?;
         serde_json::to_writer(&mut self.writer, &command)?;
         //self.writer.write_all(b"\r\n")?;
         self.writer.flush()?;
-        self.index.insert(key.clone(), current_offset);
+        let new_offset = self.writer.seek(SeekFrom::End(0))?;
+        self.index.insert(key.clone(), (initial_offset .. new_offset ).into());
         //self.write_to_file(command)?;
         println!("{:?}", self.index);
         Ok(())
@@ -82,10 +84,10 @@ impl KvStore {
     pub fn get(&mut self, key: String) -> Result<Option<String>> {
         self.reader.seek(SeekFrom::Start(0))?;
         println!("vector {:?}", self.index );
-        if let Some(offset) = self.index.get(&key).cloned() {
-            self.reader.seek(SeekFrom::Start(offset));
+        if let Some(pointer) = self.index.get(&key) {
+            self.reader.seek(SeekFrom::Start(pointer.pos))?;
 
-            let mut de = serde_json::Deserializer::from_reader(&mut self.reader);
+            let mut de   = serde_json::Deserializer::from_reader(&mut self.reader);
             let cmd: Command = serde::de::Deserialize::deserialize(&mut de)?;
 
             if let Command::Set { value, .. } = cmd {
@@ -128,24 +130,24 @@ impl KvStore {
 
     pub fn read_file(&mut self) -> Result<()> {
         let mut buf_reader = BufReader::new(OpenOptions::new().read(true).open(&self.path)?);
-        let mut offset = buf_reader.seek(SeekFrom::Start(0))?;
+        let mut initial_offset = buf_reader.seek(SeekFrom::Start(0))?;
 
         let mut stream =
             serde_json::Deserializer::from_reader(buf_reader).into_iter::<Command>();
 
         while let Some(command) = stream.next() {
-            let new_pos = stream.byte_offset() as u64;
+            let new_offset = stream.byte_offset() as u64;
             match command? {
                 Command::Set { key, value } => {
                     self.store.insert(key.to_string(), value.to_string());
-                    self.index.insert(key.to_string(), offset);
+                    self.index.insert(key.to_string(), (initial_offset .. new_offset).into());
                 }
                 Command::Remove { key } => {
                     self.store.remove(key.as_str());
                     self.index.remove(key.as_str());
                 }
             };
-            offset = new_pos;
+            initial_offset = new_offset;
         }
         Ok(())
     }
@@ -189,6 +191,22 @@ impl Command {
 
     fn remove(key: String) -> Command {
         Command::Remove { key }
+    }
+}
+
+/// Represents the position and length of a json-serialized command in the log.
+#[derive(Clone, Debug)]
+struct Pointer {
+    pos: u64,
+    len: u64
+}
+
+impl From<(Range<u64>)> for Pointer {
+    fn from((range): (Range<u64>)) -> Self {
+        Pointer {
+            pos: range.start,
+            len: range.end - range.start,
+        }
     }
 }
 
