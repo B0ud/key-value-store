@@ -69,11 +69,10 @@ impl KvStore {
         self.store.insert(key.clone(), value.clone());
         let initial_offset = self.writer.seek(SeekFrom::End(0))?;
         serde_json::to_writer(&mut self.writer, &command)?;
-        //self.writer.write_all(b"\r\n")?;
+        self.writer.write_all(b"\r\n")?;
         self.writer.flush()?;
         let new_offset = self.writer.seek(SeekFrom::End(0))?;
         self.index.insert(key.clone(), (initial_offset .. new_offset ).into());
-        //self.write_to_file(command)?;
         println!("{:?}", self.index);
         Ok(())
     }
@@ -119,13 +118,16 @@ impl KvStore {
         let mut buf_reader = BufReader::new(OpenOptions::new().read(true).open(&path)?);
         let mut buf_writer = BufWriter::new(file);
 
-        Ok(KvStore {
+        let mut kv = KvStore {
             store: HashMap::new(),
             writer: buf_writer,
             reader: buf_reader,
             index: HashMap::new(),
             path,
-        })
+        };
+
+        kv.read_file()?;
+        Ok(kv)
     }
 
     pub fn read_file(&mut self) -> Result<()> {
@@ -152,23 +154,6 @@ impl KvStore {
         Ok(())
     }
 
-}
-
-/// Private Function that read a log file and returns an in-memory KvStore
-fn restore_history(
-    mut file: StreamDeserializer<IoRead<BufReader<File>>, Command>,
-    buf_reader: BufReader<File>,
-) -> Result<HashMap<String, String>> {
-    let mut store: HashMap<String, String> = HashMap::new();
-    while let Some(command) = file.next() {
-        match command? {
-            Command::Set { key, value } => store.insert(key.to_string(), value.to_string()),
-            Command::Remove { key } => store.remove(key.as_str()),
-        };
-    }
-    //println!("Size of history {:?}", history.len());
-
-    Ok(store)
 }
 
 /// Command is an enum with each possible command of the database. Each enum

@@ -43,7 +43,7 @@ fn main() -> Result<()> {
     let opt = Command::parse();
     //println!("{:?}", opt);
     let mut kvs = KvStore::open(current_dir()?)?;
-    kvs.read_file()?;
+
     match opt {
         Command::Get { key } => {
             let result = kvs.get(key.clone())?;
