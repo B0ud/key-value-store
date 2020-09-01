@@ -11,7 +11,7 @@ Pincap Talent Planfor Practical Networked Applications (PNA) in Rust
 - [x] Documentation
 - [x] Ensure good style with clippy and rustfmt
 
-- [] Switch from clap to structop
+- [ ] Switch from clap to structop
 
 I kept clap as a library for the command line part but I have switch on clap derives a "copy" of the structop style
 
@@ -22,7 +22,7 @@ I kept clap as a library for the command line part but I have switch on clap der
 - [x] Writing to the log
 - [x] Reading from the log
 - [x] Storing log pointers in the index
-- []  Stateless vs. stateful KvStore
-- []  Compacting the log
+- [ ] Stateless vs. stateful KvStore
+- [ ] Compacting the log
 
 ##### Part 3 (networked disk-backed key-value store with multiple engines)
