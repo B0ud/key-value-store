@@ -72,12 +72,14 @@ impl KvStore {
     pub fn set(&mut self, key: String, value: String) -> Result<()> {
         let command = Command::set(key.clone(), value.clone());
         let initial_offset = self.writer.seek(SeekFrom::End(0))?;
-        serde_json::to_writer(&mut self.writer, &command)?;
         self.writer.write_all(b"\r\n")?;
+        serde_json::to_writer(&mut self.writer, &command)?;
         self.writer.flush()?;
         let new_offset = self.writer.seek(SeekFrom::End(0))?;
         self.index
             .insert(key.clone(), (initial_offset..new_offset).into());
+
+        self.compact()?;
         Ok(())
     }
 
@@ -146,6 +148,28 @@ impl KvStore {
         }
         Ok(())
     }
+
+    pub fn compact(&mut self)-> Result<()>{
+        let mut path = std::env::current_dir()?;
+        path.push("temp_log");
+        path.set_extension("json");
+
+        let temp_file= OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(&path)?;
+
+        let mut writer_temp_file = BufWriter::new(temp_file);
+        self.reader.seek(SeekFrom::Start(0))?;
+        for (_key,pointer) in &mut self.index {
+            self.reader.seek(SeekFrom::Start(pointer.pos))?;
+            let mut cmd_reader = (&mut self.reader).take(pointer.len);
+            let _len = std::io::copy(&mut cmd_reader, &mut writer_temp_file)?;
+        }
+        writer_temp_file.flush()?;
+        Ok(())
+    }
+
 }
 
 /// Command is an enum with each possible command of the database. Each enum
