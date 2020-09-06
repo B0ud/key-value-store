@@ -2,20 +2,22 @@
 
 //! Simple in-memory key/value storee responds to command line arguments
 
-use std::collections::{BTreeMap};
+use std::collections::BTreeMap;
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 use serde::{Deserialize, Serialize};
 use serde_json;
+use std::fs::File;
 use std::fs::OpenOptions;
-use std::fs::{ File};
 use std::io::{prelude::*, BufReader, BufWriter, SeekFrom, Write};
 use std::ops::Range;
 use std::path::PathBuf;
 mod errors;
 pub use errors::{MyError, Result};
 
+/// The size of the log file needed before compaction occurs
+const COMPACT_BYTES: u64 = 1024;
 
 /// The `KvStore` stores string key/value pairs.
 ///
@@ -42,6 +44,7 @@ pub struct KvStore {
     reader: BufReader<File>,
     index: BTreeMap<String, Pointer>,
     path: PathBuf,
+    uncompacted: u64,
 }
 
 impl KvStore {
@@ -76,10 +79,17 @@ impl KvStore {
         serde_json::to_writer(&mut self.writer, &command)?;
         self.writer.flush()?;
         let new_offset = self.writer.seek(SeekFrom::End(0))?;
-        self.index
-            .insert(key.clone(), (initial_offset..new_offset).into());
+        if let Some(pointer) = self
+            .index
+            .insert(key.clone(), (initial_offset..new_offset).into())
+        {
+            self.uncompacted += pointer.len;
+            //println!("Uncompacted {:?}", self.uncompacted);
+        }
+        if new_offset > COMPACT_BYTES {
+            self.compact()?;
+        }
 
-        self.compact()?;
         Ok(())
     }
 
@@ -120,6 +130,7 @@ impl KvStore {
             reader: BufReader::new(OpenOptions::new().read(true).open(&path)?),
             index: BTreeMap::new(),
             path,
+            uncompacted: 0,
         };
 
         kv.read_file()?;
@@ -137,39 +148,52 @@ impl KvStore {
             let new_offset = stream.byte_offset() as u64;
             match command? {
                 Command::Set { key, .. } => {
-                    self.index
-                        .insert(key.to_string(), (initial_offset..new_offset).into());
+                    if let Some(pointer) = self
+                        .index
+                        .insert(key.to_string(), (initial_offset..new_offset).into())
+                    {
+                        self.uncompacted += pointer.len;
+                    }
                 }
                 Command::Remove { key } => {
-                    self.index.remove(key.as_str());
+                    if let Some(_pointer) = self.index.remove(key.as_str()) {
+                        // the "remove" command itself can be deleted in the next compaction.
+                        // so we add its length to `uncompacted`.
+                        self.uncompacted += new_offset - initial_offset;
+                    }
                 }
             };
             initial_offset = new_offset;
         }
+        //println!("Uncompacted {:?}", self.uncompacted);
         Ok(())
     }
 
-    pub fn compact(&mut self)-> Result<()>{
+    pub fn compact(&mut self) -> Result<()> {
         let mut path = std::env::current_dir()?;
-        path.push("temp_log");
+        path.push("compacted_log");
         path.set_extension("json");
 
-        let temp_file= OpenOptions::new()
-            .write(true)
-            .create(true)
-            .open(&path)?;
+        let temp_file = OpenOptions::new().write(true).create(true).open(&path)?;
 
         let mut writer_temp_file = BufWriter::new(temp_file);
         self.reader.seek(SeekFrom::Start(0))?;
-        for (_key,pointer) in &mut self.index {
+        for (_key, pointer) in &mut self.index {
             self.reader.seek(SeekFrom::Start(pointer.pos))?;
             let mut cmd_reader = (&mut self.reader).take(pointer.len);
             let _len = std::io::copy(&mut cmd_reader, &mut writer_temp_file)?;
         }
         writer_temp_file.flush()?;
+
+        //self.reader = BufReader::new(OpenOptions::new().read(true).open(&path)?);
+        //self.writer = writer_temp_file;
+
+        std::fs::remove_file(&self.path)?;
+        std::fs::rename(&path, &self.path)?;
+        self.uncompacted = 0;
+        //self.path = path;
         Ok(())
     }
-
 }
 
 /// Command is an enum with each possible command of the database. Each enum

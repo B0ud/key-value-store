@@ -11,6 +11,7 @@ Pincap Talent Planfor Practical Networked Applications (PNA) in Rust
 - [x] Documentation
 - [x] Ensure good style with clippy and rustfmt
 
+Optional : 
 - [ ] Switch from clap to structop
 
 I kept clap as a library for the command line part but I have switch on clap derives a "copy" of the structop style
