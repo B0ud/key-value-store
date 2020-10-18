@@ -31,7 +31,7 @@ Finally, during the configuration of part 3, I migrated from clap to StructOp fo
 ##### Part 3 (networked disk-backed key-value store with multiple engines)
 
 - [X] Command line parsing
-- [ ] Logging
+- [X] Logging
 - [ ] Client-server networking setup
 - [ ] Implementing commands across the network
 - [ ] Pluggable storage engines
