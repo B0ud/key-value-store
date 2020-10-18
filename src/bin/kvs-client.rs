@@ -1,8 +1,8 @@
-use kvs::{KvStore, Result, MyError};
+use kvs::{KvStore, MyError, Result};
+use std::env::current_dir;
 use std::net::SocketAddr;
 use std::process::exit;
 use structopt::StructOpt;
-use std::env::current_dir;
 
 const DEFAULT_LISTENING_ADDRESS: &str = "127.0.0.1:4000";
 const ADDRESS_FORMAT: &str = "IP:PORT";
@@ -28,7 +28,7 @@ enum Command {
         #[structopt(
         long = "addr",
         help = "Sets the server address",
-        value_name = "IP:PORT",
+        value_name = ADDRESS_FORMAT,
         default_value = DEFAULT_LISTENING_ADDRESS,
         parse(try_from_str)
         )]
@@ -43,7 +43,7 @@ enum Command {
         #[structopt(
         long = "addr",
         help = "Sets the server address",
-        value_name = "IP:PORT",
+        value_name = ADDRESS_FORMAT,
         default_value = DEFAULT_LISTENING_ADDRESS,
         parse(try_from_str)
         )]
@@ -56,7 +56,7 @@ enum Command {
         #[structopt(
         long = "addr",
         help = "Sets the server address",
-        value_name = "IP:PORT",
+        value_name = ADDRESS_FORMAT,
         default_value = DEFAULT_LISTENING_ADDRESS,
         parse(try_from_str)
         )]

@@ -30,9 +30,11 @@ Finally, during the configuration of part 3, I migrated from clap to StructOp fo
 
 ##### Part 3 (networked disk-backed key-value store with multiple engines)
 
-- [ ] Command line parsing
+- [X] Command line parsing
 - [ ] Logging
 - [ ] Client-server networking setup
 - [ ] Implementing commands across the network
 - [ ] Pluggable storage engines
 - [ ] Benchmarking
+
+Note : cargo run --bin 'kvs-server|kvs-client' -- [command]
