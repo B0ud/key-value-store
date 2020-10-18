@@ -12,9 +12,11 @@ Pincap Talent Planfor Practical Networked Applications (PNA) in Rust
 - [x] Ensure good style with clippy and rustfmt
 
 Optional : 
-- [ ] Switch from clap to structop
+- [X] Switch from clap to structop
 
-I kept clap as a library for the command line part but I have switch on clap derives a "copy" of the structop style
+~~I kept clap as a library for the command line part but I have switch on clap derives a "copy" of the structop style~~ 
+
+Finally, during the configuration of part 3, I migrated from clap to StructOp for a more suitable syntax
 
 ##### Part 2 (disk-backed key-value store with compacting log file)
 
@@ -24,6 +26,13 @@ I kept clap as a library for the command line part but I have switch on clap der
 - [x] Reading from the log
 - [x] Storing log pointers in the index
 - [ ] Stateless vs. stateful KvStore
-- [ ] Compacting the log
+- [x] Compacting the log
 
 ##### Part 3 (networked disk-backed key-value store with multiple engines)
+
+- [ ] Command line parsing
+- [ ] Logging
+- [ ] Client-server networking setup
+- [ ] Implementing commands across the network
+- [ ] Pluggable storage engines
+- [ ] Benchmarking
