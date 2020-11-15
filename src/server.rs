@@ -1,12 +1,14 @@
+use crate::common::{GetResponse, RemoveResponse, Request, SetResponse};
 use crate::errors::{MyError, Result};
 use log::{debug, error, info};
-use std::net::{TcpListener, TcpStream};
+use serde_json::Deserializer;
 use std::io::Read;
 use std::io::{BufReader, BufWriter, Write};
-use crate::common::{GetResponse, RemoveResponse, Request, SetResponse};
-use serde_json::Deserializer;
+use std::net::{TcpListener, TcpStream};
 
-pub struct Server {}
+pub struct Server {
+
+}
 
 impl Server {
     /* pub fn new() -> Server(){
@@ -27,22 +29,36 @@ impl Server {
         }
         Ok(())
     }
-
-
 }
-pub fn handle_connections(mut stream: TcpStream) -> Result<()> {
+pub fn handle_connections( stream: TcpStream) -> Result<()> {
     let peer_addr = stream.peer_addr()?;
     info!(
-        "Connection established from {}, waiting for data...",
-        stream.peer_addr()?
+        "Connection established from {}, waiting for data..., {}",
+        stream.peer_addr()?,
+        stream.local_addr()?
     );
-    stream.local_addr();
+
+
     let reader = BufReader::new(&stream);
+    let mut bufwriter = BufWriter::new(&stream);
     let req_reader = Deserializer::from_reader(reader).into_iter::<Request>();
 
-    for req in req_reader {
+   for req in req_reader {
         info!("Receive request from {}: {:?}", peer_addr, req);
+
+       match req? {
+            Request::Get {key} => {
+                let response : GetResponse = GetResponse::Ok(Some(String::from("reponse55145")));
+                info!("Test serveur");
+
+                serde_json::to_writer(&mut bufwriter, &response)?;
+                bufwriter.flush()?;
+                info!("Response sent to {:?}: {:?}",peer_addr, response);
+            }
+           _ => info!("Default options")
+       };
     }
+
 
     Ok(())
 }
