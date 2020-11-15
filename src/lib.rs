@@ -13,8 +13,15 @@ use std::fs::OpenOptions;
 use std::io::{prelude::*, BufReader, BufWriter, SeekFrom, Write};
 use std::ops::Range;
 use std::path::PathBuf;
+
+mod client;
+mod common;
 mod errors;
+mod server;
+
+pub use client::KvsClient;
 pub use errors::{MyError, Result};
+pub use server::Server;
 
 /// The size of the log file needed before compaction occurs
 const COMPACT_BYTES: u64 = 1024;

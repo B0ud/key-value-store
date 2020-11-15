@@ -1,4 +1,5 @@
-use kvs::{KvStore, MyError, Result};
+use env_logger::Env;
+use kvs::{KvStore, KvsClient, MyError, Result};
 use std::env::current_dir;
 use std::net::SocketAddr;
 use std::process::exit;
@@ -73,11 +74,12 @@ fn main() {
 }
 
 fn run(opt: Opt) -> Result<()> {
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let mut kvs = KvStore::open(current_dir()?)?;
 
     match opt.command {
         Command::Get { key, addr } => {
-            //let mut client = KvsClient::connect(addr)?;
+            let mut client = KvsClient::connect(addr)?;
             if let Some(value) = kvs.get(key)? {
                 println!("{}", value);
             } else {

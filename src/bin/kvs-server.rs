@@ -1,11 +1,11 @@
-use kvs::{Result};
+use env_logger::Env;
+use kvs::{Result, Server};
+use log::info;
+use std::io::prelude::*;
 use std::net::SocketAddr;
+use std::net::TcpStream;
 use std::process::exit;
 use structopt::StructOpt;
-use log::{info};
-use env_logger::{Env};
-
-
 
 const DEFAULT_LISTENING_ADDRESS: &str = "127.0.0.1:4000";
 const ADDRESS_FORMAT: &str = "IP:PORT";
@@ -26,7 +26,6 @@ struct Opt {
 }
 
 fn main() {
-
     let opt = Opt::from_args();
     if let Err(e) = run(opt) {
         eprintln!("{}", e);
@@ -37,11 +36,13 @@ fn main() {
 fn run(opt: Opt) -> Result<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    info!("starting up");
+    info!("Starting up");
     //let engine = opt.engine.unwrap_or(DEFAULT_ENGINE);
     info!("kvs-server {}", env!("CARGO_PKG_VERSION"));
     //info!("Storage engine: {}", engine);
     info!("Listening on {}", opt.addr);
+    Server::open();
+
     Ok(())
     // write engine to engine file
     //fs::write(current_dir()?.join("engine"), format!("{}", engine))?;
