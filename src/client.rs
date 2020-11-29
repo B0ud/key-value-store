@@ -15,10 +15,11 @@ pub struct KvsClient {
 impl KvsClient {
     /// Connect to `addr` to access `KvsServer`.
     pub fn connect<A: ToSocketAddrs>(addr: A) -> Result<Self> {
-        info!("Try to connect ");
+        info!("Try to connect");
 
         let tcp_reader = TcpStream::connect(addr)?;
         let tcp_writer = tcp_reader.try_clone()?;
+        info!("Connected to {:?}", tcp_reader.peer_addr()?);
 
         Ok(KvsClient {
             writer: BufWriter::new(tcp_writer),
@@ -27,23 +28,13 @@ impl KvsClient {
     }
 
     /// Get the value of a given key from the server.
-    pub fn get(&mut self, key: String) -> Result<()> {
-        info!("Test");
+    pub fn get(&mut self, key: String) -> Result<Option<String>> {
         serde_json::to_writer(&mut self.writer, &Request::Get { key })?;
         self.writer.flush()?;
-        info!("Test 2");
         let resp = GetResponse::deserialize(&mut self.reader)?;
-        info!("Test 3");
-        info!("Client response {:?} ", resp);
         match resp {
-            GetResponse::Ok(value) => info!("client value {}", value.unwrap()),
-            GetResponse::Err(value) => info!("error value {}", value)
-        };
-
-        //match resp {
-        //    GetResponse::Ok(value) => Ok(value),
-        //    GetResponse::Err(msg) => Err(KvsError::StringError(msg)),
-        //}
-        Ok(())
+            GetResponse::Ok(value) =>  Ok(value),
+            GetResponse::Err(msg) => Err(MyError::StringError(msg)),
+        }
     }
 }

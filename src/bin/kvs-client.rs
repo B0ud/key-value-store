@@ -4,6 +4,7 @@ use std::env::current_dir;
 use std::net::SocketAddr;
 use std::process::exit;
 use structopt::StructOpt;
+use log::{error, info};
 
 const DEFAULT_LISTENING_ADDRESS: &str = "127.0.0.1:4000";
 const ADDRESS_FORMAT: &str = "IP:PORT";
@@ -80,11 +81,11 @@ fn run(opt: Opt) -> Result<()> {
     match opt.command {
         Command::Get { key, addr } => {
             let mut client = KvsClient::connect(addr)?;
-            client.get(key.clone())?;
-            if let Some(value) = kvs.get(key)? {
-                println!("{}", value);
+
+            if let Some(value) = client.get(key.clone())? {
+                info!("{}", value);
             } else {
-                println!("{} ", MyError::KeyNotFound)
+                error!("{}", MyError::KeyNotFound)
             }
         }
         Command::Set { key, value, addr } => {

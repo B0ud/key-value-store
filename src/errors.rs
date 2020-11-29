@@ -9,6 +9,9 @@ pub enum MyError {
     Io(#[cause] std::io::Error),
     #[fail(display = "{}", _0)]
     DeserializeError(#[cause] serde_json::error::Error),
+    /// Error with a string message
+    #[fail(display = "{}", _0)]
+    StringError(String),
 }
 
 impl From<io::Error> for MyError {
