@@ -1,6 +1,7 @@
 use crate::common::{GetResponse, RemoveResponse, Request, SetResponse};
 use crate::errors::{MyError, Result};
-use crate::KvStore;
+use crate::engine::KvStore;
+
 use log::{debug, error, info};
 use serde_json::Deserializer;
 use std::io::Read;
