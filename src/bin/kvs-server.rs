@@ -1,5 +1,7 @@
 use env_logger::Env;
 use kvs::{Result, Server};
+use kvs::{KvsEngine, KvStore};
+use std::env::current_dir;
 use log::info;
 use std::io::prelude::*;
 use std::net::SocketAddr;
@@ -41,8 +43,9 @@ fn run(opt: Opt) -> Result<()> {
     info!("kvs-server {}", env!("CARGO_PKG_VERSION"));
     //info!("Storage engine: {}", engine);
     info!("Listening on {}", opt.addr);
-    Server::open();
-
+    let engine = KvStore::open(current_dir()?)?;
+    let server : Server<KvStore> = Server::new(engine);
+    server.open()?;
     Ok(())
     // write engine to engine file
     //fs::write(current_dir()?.join("engine"), format!("{}", engine))?;

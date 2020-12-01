@@ -1,6 +1,6 @@
 use crate::common::{GetResponse, RemoveResponse, Request, SetResponse};
 use crate::errors::{MyError, Result};
-use crate::engine::KvStore;
+use crate::engine::{KvsEngine, KvStore};
 
 use log::{debug, error, info};
 use serde_json::Deserializer;
@@ -9,17 +9,17 @@ use std::io::{BufReader, BufWriter, Write};
 use std::net::{TcpListener, TcpStream};
 use std::env::current_dir;
 
-pub struct Server {
-
+pub struct Server<E: KvsEngine> {
+    engine: E,
 }
 
-impl Server {
-    /* pub fn new() -> Server(){
-        let listener = TcpListener::bind("127.0.0.1:80")?;
-        Server{listener}
-    }*/
+impl <E: KvsEngine> Server<E> {
+    /// Create a `KvsServer` with a given storage engine.
+    pub fn new(engine: E) -> Self{
+        Server { engine }
+    }
 
-    pub fn open() -> Result<()> {
+    pub fn open(mut self) -> Result<()> {
         // accept connections and process them serially
         let listener = TcpListener::bind("127.0.0.1:4000")?;
         for stream in listener.incoming() {

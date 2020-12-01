@@ -8,8 +8,7 @@ use std::io::{prelude::*, BufReader, BufWriter, SeekFrom, Write};
 use std::ops::Range;
 use std::path::PathBuf;
 use crate::{MyError, Result};
-
-
+use crate::engine::KvsEngine;
 
 
 /// The size of the log file needed before compaction occurs
@@ -43,32 +42,11 @@ pub struct KvStore {
     uncompacted: u64,
 }
 
-impl KvStore {
-    /// Creates a `KvStore`.
-    pub fn new() -> Result<Self> {
-        let cwd = std::env::current_dir()?;
-        KvStore::open(cwd.as_path())
-    }
-
-    /// Remove a given key.
-    pub fn remove(&mut self, key: String) -> Result<()> {
-        self.writer.seek(SeekFrom::End(0))?;
-        let command = Command::remove(key.clone());
-        match self.index.remove(&key) {
-            Some(_x) => {
-                serde_json::to_writer(&mut self.writer, &command)?;
-                self.writer.write_all(b"\r\n")?;
-                self.writer.flush()?;
-                return Ok(());
-            }
-            None => return Err(MyError::KeyNotFound),
-        }
-    }
-
+impl KvsEngine for KvStore {
     /// Sets the value of a string key to a string.
     ///
     /// If the key already exists, the previous value will be overwritten.
-    pub fn set(&mut self, key: String, value: String) -> Result<()> {
+    fn set(&mut self, key: String, value: String) -> Result<()> {
         let command = Command::set(key.clone(), value.clone());
         let initial_offset = self.writer.seek(SeekFrom::End(0))?;
         self.writer.write_all(b"\r\n")?;
@@ -92,7 +70,7 @@ impl KvStore {
     /// Gets the string value of a given string key.
     ///
     /// Returns `None` if the given key does not exist.
-    pub fn get(&mut self, key: String) -> Result<Option<String>> {
+    fn get(&mut self, key: String) -> Result<Option<String>> {
         self.reader.seek(SeekFrom::Start(0))?;
         if let Some(pointer) = self.index.get(&key) {
             self.reader.seek(SeekFrom::Start(pointer.pos))?;
@@ -105,6 +83,32 @@ impl KvStore {
         } else {
             Ok(None)
         }
+    }
+
+    /// Remove a given key.
+    fn remove(&mut self, key: String) -> Result<()> {
+        self.writer.seek(SeekFrom::End(0))?;
+        let command = Command::remove(key.clone());
+        match self.index.remove(&key) {
+            Some(_x) => {
+                serde_json::to_writer(&mut self.writer, &command)?;
+                self.writer.write_all(b"\r\n")?;
+                self.writer.flush()?;
+                return Ok(());
+            }
+            None => return Err(MyError::KeyNotFound),
+        }
+    }
+
+}
+
+
+
+impl  KvStore {
+    /// Creates a `KvStore`.
+    pub fn new() -> Result<Self> {
+        let cwd = std::env::current_dir()?;
+        KvStore::open(cwd.as_path())
     }
 
     /// Open the KvStore at a given path. Return the KvStore.
@@ -134,7 +138,7 @@ impl KvStore {
     }
 
     /// Read file and load history of command from the log
-    pub fn read_file(&mut self) -> Result<()> {
+    fn read_file(&mut self) -> Result<()> {
         let mut buf_reader = BufReader::new(OpenOptions::new().read(true).open(&self.path)?);
         let mut initial_offset = buf_reader.seek(SeekFrom::Start(0))?;
 
@@ -165,7 +169,8 @@ impl KvStore {
         Ok(())
     }
 
-    pub fn compact(&mut self) -> Result<()> {
+    /// Compact file when when the size exceeds the configured one. Compact == remove remove the entries for identical keys
+    fn compact(&mut self) -> Result<()> {
         let mut path = std::env::current_dir()?;
         path.push("compacted_log");
         path.set_extension("json");

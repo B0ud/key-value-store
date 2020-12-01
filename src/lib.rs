@@ -16,7 +16,7 @@ extern crate failure_derive;
 pub use client::KvsClient;
 pub use errors::{MyError, Result};
 pub use server::Server;
-pub use engine::KvStore;
+pub use engine::{KvStore, KvsEngine};
 
 
 #[cfg(test)]
