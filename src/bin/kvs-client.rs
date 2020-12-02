@@ -89,12 +89,13 @@ fn run(opt: Opt) -> Result<()> {
             }
         }
         Command::Set { key, value, addr } => {
-            //let mut client = KvsClient::connect(addr)?;
-            //kvs.set(key, value)?;
+            let mut client = KvsClient::connect(addr)?;
+            client.set(key, value)?;
+
         }
         Command::Remove { key, addr } => {
-            // let mut client = KvsClient::connect(addr)?;
-            //kvs.remove(key)?;
+            let mut client = KvsClient::connect(addr)?;
+            client.remove(key)?;
         }
     }
     Ok(())

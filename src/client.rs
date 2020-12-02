@@ -5,6 +5,7 @@ use serde::Deserialize;
 use serde_json::de::{Deserializer, IoRead};
 use std::io::{BufReader, BufWriter, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
+use crate::common::Request::Set;
 
 /// Key value store client
 pub struct KvsClient {
@@ -35,6 +36,28 @@ impl KvsClient {
         match resp {
             GetResponse::Ok(value) => Ok(value),
             GetResponse::Err(msg) => Err(MyError::StringError(msg)),
+        }
+    }
+
+    /// Set the value of a string key in the server.
+    pub fn set(&mut self, key: String, value: String) -> Result<()> {
+        serde_json::to_writer(&mut self.writer, &Request::Set { key, value })?;
+        self.writer.flush()?;
+        let resp = SetResponse::deserialize(&mut self.reader)?;
+        match resp {
+            SetResponse::Ok(_value) => Ok(()),
+            SetResponse::Err(msg) => Err(MyError::StringError(msg)),
+        }
+    }
+
+    /// Remove a string key in the server.
+    pub fn remove(&mut self, key: String) -> Result<()> {
+        serde_json::to_writer(&mut self.writer, &Request::Remove { key})?;
+        self.writer.flush()?;
+        let resp = RemoveResponse::deserialize(&mut self.reader)?;
+        match resp {
+            RemoveResponse::Ok(_value) => Ok(()),
+            RemoveResponse::Err(msg) => Err(MyError::StringError(msg))
         }
     }
 }
