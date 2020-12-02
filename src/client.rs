@@ -33,7 +33,7 @@ impl KvsClient {
         self.writer.flush()?;
         let resp = GetResponse::deserialize(&mut self.reader)?;
         match resp {
-            GetResponse::Ok(value) =>  Ok(value),
+            GetResponse::Ok(value) => Ok(value),
             GetResponse::Err(msg) => Err(MyError::StringError(msg)),
         }
     }

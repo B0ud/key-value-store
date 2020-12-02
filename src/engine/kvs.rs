@@ -1,15 +1,14 @@
 //! Simple in-memory key/value storee responds to command line arguments
-use std::collections::BTreeMap;
+use crate::engine::KvsEngine;
+use crate::{MyError, Result};
 use serde::{Deserialize, Serialize};
 use serde_json;
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::{prelude::*, BufReader, BufWriter, SeekFrom, Write};
 use std::ops::Range;
 use std::path::PathBuf;
-use crate::{MyError, Result};
-use crate::engine::KvsEngine;
-
 
 /// The size of the log file needed before compaction occurs
 const COMPACT_BYTES: u64 = 1024;
@@ -99,12 +98,9 @@ impl KvsEngine for KvStore {
             None => return Err(MyError::KeyNotFound),
         }
     }
-
 }
 
-
-
-impl  KvStore {
+impl KvStore {
     /// Creates a `KvStore`.
     pub fn new() -> Result<Self> {
         let cwd = std::env::current_dir()?;

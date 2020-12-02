@@ -1,13 +1,16 @@
 use env_logger::Env;
+use kvs::{KvStore, KvsEngine};
 use kvs::{Result, Server};
-use kvs::{KvsEngine, KvStore};
-use std::env::current_dir;
 use log::info;
+use std::env::current_dir;
 use std::io::prelude::*;
 use std::net::SocketAddr;
 use std::net::TcpStream;
 use std::process::exit;
 use structopt::StructOpt;
+use structopt::clap::arg_enum;
+
+//const DEFAULT_ENGINE: Engine = Engine::kvs;
 
 const DEFAULT_LISTENING_ADDRESS: &str = "127.0.0.1:4000";
 const ADDRESS_FORMAT: &str = "IP:PORT";
@@ -23,9 +26,20 @@ struct Opt {
     parse(try_from_str)
     )]
     addr: SocketAddr,
-    #[structopt(long, help = "Sets the storage engine", value_name = "ENGINE-NAME")]
+    #[structopt(long, help = "Sets the storage engine", value_name = "ENGINE-NAME",
+    possible_values = &Engine::variants(), case_insensitive = true)]
     engine: Option<String>,
 }
+
+arg_enum! {
+    #[allow(non_camel_case_types)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+    enum Engine {
+        kvs,
+        sled
+    }
+}
+
 
 fn main() {
     let opt = Opt::from_args();
@@ -44,8 +58,8 @@ fn run(opt: Opt) -> Result<()> {
     //info!("Storage engine: {}", engine);
     info!("Listening on {}", opt.addr);
     let engine = KvStore::open(current_dir()?)?;
-    let server : Server<KvStore> = Server::new(engine);
-    server.open()?;
+    let server: Server<KvStore> = Server::new(engine);
+    server.open(opt.addr)?;
     Ok(())
     // write engine to engine file
     //fs::write(current_dir()?.join("engine"), format!("{}", engine))?;

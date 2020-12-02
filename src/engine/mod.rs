@@ -3,7 +3,6 @@
 use crate::Result;
 mod kvs;
 
-
 pub use self::kvs::KvStore;
 
 /// Trait for a key value storage engine.
