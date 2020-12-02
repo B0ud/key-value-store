@@ -1,11 +1,9 @@
 use env_logger::Env;
-use kvs::{KvStore, KvsEngine};
+use kvs::{KvStore};
 use kvs::{Result, Server};
 use log::info;
 use std::env::current_dir;
-use std::io::prelude::*;
 use std::net::SocketAddr;
-use std::net::TcpStream;
 use std::process::exit;
 use structopt::StructOpt;
 use structopt::clap::arg_enum;

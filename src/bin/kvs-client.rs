@@ -1,7 +1,6 @@
 use env_logger::Env;
-use kvs::{KvStore, KvsClient, MyError, Result};
+use kvs::{KvsClient, MyError, Result};
 use log::{error, info};
-use std::env::current_dir;
 use std::net::SocketAddr;
 use std::process::exit;
 use structopt::StructOpt;

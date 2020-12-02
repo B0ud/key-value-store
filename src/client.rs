@@ -1,11 +1,10 @@
 use crate::common::{GetResponse, RemoveResponse, Request, SetResponse};
 use crate::errors::{MyError, Result};
-use log::{debug, error, info};
+use log::{info};
 use serde::Deserialize;
 use serde_json::de::{Deserializer, IoRead};
 use std::io::{BufReader, BufWriter, Write};
-use std::net::{TcpListener, TcpStream, ToSocketAddrs};
-use crate::common::Request::Set;
+use std::net::{TcpStream, ToSocketAddrs};
 
 /// Key value store client
 pub struct KvsClient {
