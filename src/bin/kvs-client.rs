@@ -82,9 +82,9 @@ fn run(opt: Opt) -> Result<()> {
             let mut client = KvsClient::connect(addr)?;
 
             if let Some(value) = client.get(key.clone())? {
-                info!("{}", value);
+                println!("{}", value);
             } else {
-                error!("{}", MyError::KeyNotFound)
+                println!("{}", MyError::KeyNotFound)
             }
         }
         Command::Set { key, value, addr } => {
