@@ -1,4 +1,4 @@
-use env_logger::Env;
+use env_logger::{Env, Target};
 use kvs::{KvsClient, MyError, Result};
 use log::{error, info};
 use std::net::SocketAddr;
@@ -74,7 +74,7 @@ fn main() {
 }
 
 fn run(opt: Opt) -> Result<()> {
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).target(Target::Stdout).init();
     //let mut kvs = KvStore::open(current_dir()?)?;
 
     match opt.command {
@@ -82,9 +82,9 @@ fn run(opt: Opt) -> Result<()> {
             let mut client = KvsClient::connect(addr)?;
 
             if let Some(value) = client.get(key.clone())? {
-                println!("{}", value);
+                info!("{}", value);
             } else {
-                println!("{}", MyError::KeyNotFound)
+                error!("{}", MyError::KeyNotFound)
             }
         }
         Command::Set { key, value, addr } => {

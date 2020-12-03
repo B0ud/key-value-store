@@ -1,4 +1,4 @@
-use env_logger::Env;
+use env_logger::{Env, Target};
 use kvs::{KvStore};
 use kvs::{Result, Server};
 use log::info;
@@ -48,7 +48,7 @@ fn main() {
 }
 
 fn run(opt: Opt) -> Result<()> {
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).target(Target::Stdout).init();
 
     info!("Starting up");
     //let engine = opt.engine.unwrap_or(DEFAULT_ENGINE);
