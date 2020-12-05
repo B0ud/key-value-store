@@ -20,8 +20,8 @@ const COMPACT_BYTES: u64 = 1024;
 /// Example:
 ///
 /// ```rust
-/// # use kvs::{MyError, Result};
-/// # use kvs::KvStore;
+/// # use kvs::{MyError, Result, KvStore};
+/// # use kvs::KvsEngine;
 /// # use std::env::current_dir;
 /// # fn try_main() -> Result<()> {
 ///
