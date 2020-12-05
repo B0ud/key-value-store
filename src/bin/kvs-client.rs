@@ -74,7 +74,9 @@ fn main() {
 }
 
 fn run(opt: Opt) -> Result<()> {
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).target(Target::Stdout).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info"))
+        .target(Target::Stdout)
+        .init();
     //let mut kvs = KvStore::open(current_dir()?)?;
 
     match opt.command {
@@ -90,7 +92,6 @@ fn run(opt: Opt) -> Result<()> {
         Command::Set { key, value, addr } => {
             let mut client = KvsClient::connect(addr)?;
             client.set(key, value)?;
-
         }
         Command::Remove { key, addr } => {
             let mut client = KvsClient::connect(addr)?;

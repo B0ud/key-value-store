@@ -11,7 +11,7 @@ extern crate failure;
 extern crate failure_derive;
 
 pub use client::KvsClient;
-pub use engine::{KvStore, KvsEngine};
+pub use engine::{KvStore, KvsEngine, SledKvsEngine};
 pub use errors::{MyError, Result};
 pub use server::Server;
 

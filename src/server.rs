@@ -1,6 +1,6 @@
 use crate::common::{GetResponse, RemoveResponse, Request, SetResponse};
-use crate::engine::{ KvsEngine};
-use crate::errors::{Result};
+use crate::engine::KvsEngine;
+use crate::errors::Result;
 
 use log::{error, info};
 use serde_json::Deserializer;
@@ -17,7 +17,7 @@ impl<E: KvsEngine> Server<E> {
         Server { engine }
     }
 
-    pub fn open<A: ToSocketAddrs>(mut self,  addr: A) -> Result<()> {
+    pub fn open<A: ToSocketAddrs>(mut self, addr: A) -> Result<()> {
         // accept connections and process them serially
         let listener = TcpListener::bind(addr)?;
         for stream in listener.incoming() {
@@ -57,9 +57,9 @@ impl<E: KvsEngine> Server<E> {
                     serde_json::to_writer(&mut bufwriter, &response)?;
                     bufwriter.flush()?;
                     info!("Response sent to {:?}: {:?}", peer_addr, response);
-                },
-                Request::Set {key ,value} => {
-                    let response = match  self.engine.set(key, value) {
+                }
+                Request::Set { key, value } => {
+                    let response = match self.engine.set(key, value) {
                         Ok(_value) => SetResponse::Ok(()),
                         Err(err) => SetResponse::Err(err.to_string()),
                     };
@@ -67,8 +67,8 @@ impl<E: KvsEngine> Server<E> {
                     bufwriter.flush()?;
                     info!("Response sent to {:?}: {:?}", peer_addr, response);
                 }
-                Request::Remove {key} => {
-                    let response = match  self.engine.remove(key) {
+                Request::Remove { key } => {
+                    let response = match self.engine.remove(key) {
                         Ok(_value) => RemoveResponse::Ok(()),
                         Err(err) => RemoveResponse::Err(err.to_string()),
                     };
@@ -76,11 +76,9 @@ impl<E: KvsEngine> Server<E> {
                     bufwriter.flush()?;
                     info!("Response sent to {:?}: {:?}", peer_addr, response);
                 }
-
             };
         }
 
         Ok(())
     }
 }
-

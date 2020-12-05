@@ -1,12 +1,12 @@
 use env_logger::{Env, Target};
-use kvs::{KvStore};
+use kvs::{KvStore, SledKvsEngine};
 use kvs::{Result, Server};
 use log::info;
 use std::env::current_dir;
 use std::net::SocketAddr;
 use std::process::exit;
-use structopt::StructOpt;
 use structopt::clap::arg_enum;
+use structopt::StructOpt;
 
 //const DEFAULT_ENGINE: Engine = Engine::kvs;
 
@@ -38,7 +38,6 @@ arg_enum! {
     }
 }
 
-
 fn main() {
     let opt = Opt::from_args();
     if let Err(e) = run(opt) {
@@ -48,7 +47,9 @@ fn main() {
 }
 
 fn run(opt: Opt) -> Result<()> {
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).target(Target::Stdout).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info"))
+        .target(Target::Stdout)
+        .init();
 
     info!("Starting up");
     //let engine = opt.engine.unwrap_or(DEFAULT_ENGINE);
@@ -56,7 +57,8 @@ fn run(opt: Opt) -> Result<()> {
     //info!("Storage engine: {}", engine);
     info!("Listening on {}", opt.addr);
     let engine = KvStore::open(current_dir()?)?;
-    let server: Server<KvStore> = Server::new(engine);
+    let engine2 = SledKvsEngine::open(current_dir()?)?;
+    let server: Server<SledKvsEngine> = Server::new(engine2);
     server.open(opt.addr)?;
     Ok(())
     // write engine to engine file

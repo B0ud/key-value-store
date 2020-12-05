@@ -5,6 +5,7 @@ mod kvs;
 mod sled;
 
 pub use self::kvs::KvStore;
+pub use self::sled::SledKvsEngine;
 
 /// Trait for a key value storage engine.
 pub trait KvsEngine {

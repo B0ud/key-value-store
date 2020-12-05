@@ -1,4 +1,5 @@
 use assert_cmd::prelude::*;
+use predicates::prelude::*;
 use predicates::str::{contains, is_empty};
 use std::fs::{self, File};
 use std::process::Command;
@@ -6,7 +7,6 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 use tempfile::TempDir;
-use predicates::prelude::*;
 
 // `kvs-client` with no args should exit with a non-zero code.
 #[test]
@@ -250,7 +250,7 @@ fn cli_access_server(engine: &str, addr: &str) {
         .current_dir(&temp_dir)
         .assert()
         .success()
-        .stdout( is_empty().not());
+        .stdout(is_empty().not());
 
     Command::cargo_bin("kvs-client")
         .unwrap()
@@ -258,7 +258,7 @@ fn cli_access_server(engine: &str, addr: &str) {
         .current_dir(&temp_dir)
         .assert()
         .success()
-        .stdout(contains("value2" ));
+        .stdout(contains("value2"));
 
     Command::cargo_bin("kvs-client")
         .unwrap()
