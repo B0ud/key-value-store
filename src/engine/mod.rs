@@ -2,6 +2,7 @@
 
 use crate::Result;
 mod kvs;
+mod sled;
 
 pub use self::kvs::KvStore;
 
