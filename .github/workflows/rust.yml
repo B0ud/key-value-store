@@ -20,6 +20,18 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+  
+    - name: Generate coverage file
+      if: (github.ref == 'refs/heads/master' || github.event_name == 'pull_request')
+      run: |
+          which cargo-tarpaulin || cargo install cargo-tarpaulin
+          cargo tarpaulin --out Xml -- --skip=test_stream_timeout --skip=test_message_timeout --skip=test_restart_sync_actor
+    
+    - name: Upload to Codecov
+      if: matrix.version == 'stable' && (github.ref == 'refs/heads/master' || github.event_name == 'pull_request')
+      uses: codecov/codecov-action@v1
+      with:
+        file: cobertura.xml
     
     
       
