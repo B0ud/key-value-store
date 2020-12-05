@@ -174,7 +174,7 @@ fn cli_log_configuration() {
 
 #[test]
 fn cli_wrong_engine() {
-    // sled first, kvs second
+    // sled first, wrong engine after
     {
         let temp_dir = TempDir::new().unwrap();
         let mut cmd = Command::cargo_bin("kvs-server").unwrap();
@@ -187,13 +187,13 @@ fn cli_wrong_engine() {
         child.kill().expect("server exited before killed");
 
         let mut cmd = Command::cargo_bin("kvs-server").unwrap();
-        cmd.args(&["--engine", "kvs", "--addr", "127.0.0.1:4003"])
+        cmd.args(&["--engine", "titit", "--addr", "127.0.0.1:4003"])
             .current_dir(&temp_dir)
             .assert()
             .failure();
     }
 
-    // kvs first, sled second
+    // kvs first, wrong engine
     {
         let temp_dir = TempDir::new().unwrap();
         let mut cmd = Command::cargo_bin("kvs-server").unwrap();
@@ -206,7 +206,7 @@ fn cli_wrong_engine() {
         child.kill().expect("server exited before killed");
 
         let mut cmd = Command::cargo_bin("kvs-server").unwrap();
-        cmd.args(&["--engine", "sled", "--addr", "127.0.0.1:4003"])
+        cmd.args(&["--engine", "qqq", "--addr", "127.0.0.1:4003"])
             .current_dir(&temp_dir)
             .assert()
             .failure();

@@ -9,6 +9,7 @@ pub struct SledKvsEngine {
 }
 
 impl KvsEngine for SledKvsEngine {
+
     fn set(&mut self, key: String, value: String) -> Result<()> {
         self.store.insert(key, value.as_bytes())?;
         self.store.flush();
@@ -25,7 +26,9 @@ impl KvsEngine for SledKvsEngine {
     }
 
     fn remove(&mut self, key: String) -> Result<()> {
-        unimplemented!()
+        self.store.remove(key)?.ok_or(MyError::KeyNotFound)?;
+        self.store.flush()?;
+        Ok(())
     }
 }
 
