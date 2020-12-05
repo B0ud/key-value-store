@@ -160,7 +160,7 @@ fn cli_log_configuration() {
     let mut child = cmd
         .args(&["--engine", "kvs", "--addr", "127.0.0.1:4001"])
         .current_dir(&temp_dir)
-        .stderr(File::create(&stderr_path).unwrap())
+        .stdout(File::create(&stderr_path).unwrap())
         .spawn()
         .unwrap();
     thread::sleep(Duration::from_secs(1));
