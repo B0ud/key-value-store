@@ -1,3 +1,5 @@
+![Rust](https://github.com/B0ud/key-value-store/workflows/Rust/badge.svg)
+
 # An embedded key/velue store in Rust. 
 
 Pincap Talent Planfor Practical Networked Applications (PNA) in Rust
