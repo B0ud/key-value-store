@@ -1,8 +1,10 @@
-![Rust](https://github.com/B0ud/key-value-store/workflows/Rust/badge.svg)
+![Rust CI](https://github.com/B0ud/key-value-store/workflows/Rust/badge.svg)
+[![Version](https://img.shields.io/badge/rustc-1.48+-ab6000.svg)](https://blog.rust-lang.org/2020/11/19/Rust-1.48.html)
+[![codecov](https://codecov.io/gh/B0ud/key-value-store/branch/master/graph/badge.svg?token=NNQ52FZKAG)](https://codecov.io/gh/B0ud/key-value-store)
 
 # An embedded key/velue store in Rust. 
 
-Pincap Talent Planfor Practical Networked Applications (PNA) in Rust
+Pincap Talent Plan for Practical Networked Applications (PNA) in Rust
 
 ##### Project 1 (in-memory key-value store)
 
