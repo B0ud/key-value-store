@@ -1,5 +1,5 @@
 use env_logger::{Env, Target};
-use kvs::{KvStore, SledKvsEngine};
+use kvs::{KvStore, KvsEngine, SledKvsEngine};
 use kvs::{Result, Server};
 use log::info;
 use std::env::current_dir;
@@ -12,6 +12,7 @@ use structopt::StructOpt;
 
 const DEFAULT_LISTENING_ADDRESS: &str = "127.0.0.1:4000";
 const ADDRESS_FORMAT: &str = "IP:PORT";
+const DEFAULT_ENGINE: Engine = Engine::kvs;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "kvs-server")]
@@ -26,7 +27,7 @@ struct Opt {
     addr: SocketAddr,
     #[structopt(long, help = "Sets the storage engine", value_name = "ENGINE-NAME",
     possible_values = &Engine::variants(), case_insensitive = true)]
-    engine: Option<String>,
+    engine: Option<Engine>,
 }
 
 arg_enum! {
@@ -56,18 +57,16 @@ fn run(opt: Opt) -> Result<()> {
     info!("kvs-server {}", env!("CARGO_PKG_VERSION"));
     //info!("Storage engine: {}", engine);
     info!("Listening on {}", opt.addr);
-    let engine = KvStore::open(current_dir()?)?;
-    let engine2 = SledKvsEngine::open(current_dir()?)?;
-    let server: Server<SledKvsEngine> = Server::new(engine2);
-    server.open(opt.addr)?;
-    Ok(())
-    // write engine to engine file
-    //fs::write(current_dir()?.join("engine"), format!("{}", engine))?;
 
-    /* match engine {
-    Engine::kvs => run_with_engine(KvStore::open(current_dir()?)?, opt.addr),
-     Engine::sled => run_with_engine(
-         SledKvsEngine::new(sled::Db::start_default(current_dir()?)?),
-         opt.addr,
-     ),*/
+    let engine = opt.engine.unwrap_or(DEFAULT_ENGINE);
+
+    match engine {
+        Engine::kvs => run_engine(KvStore::open(current_dir()?)?, opt.addr),
+        Engine::sled => run_engine(SledKvsEngine::open(current_dir()?)?, opt.addr),
+    }
+}
+
+fn run_engine<E: KvsEngine>(engine: E, addr: SocketAddr) -> Result<()> {
+    let server = Server::new(engine);
+    server.open(addr)
 }
