@@ -1,7 +1,6 @@
 //! Map sled crate
 use crate::engine::KvsEngine;
 use crate::{MyError, Result};
-use sled::Db;
 use std::path::PathBuf;
 
 pub struct SledKvsEngine {
@@ -14,7 +13,7 @@ impl KvsEngine for SledKvsEngine {
     /// If the key already exists, the previous value will be overwritten.
     fn set(&mut self, key: String, value: String) -> Result<()> {
         self.store.insert(key, value.as_bytes())?;
-        self.store.flush();
+        self.store.flush()?;
         Ok(())
     }
 
