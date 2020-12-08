@@ -38,7 +38,7 @@ Finally, during the configuration of part 3, I migrated from clap to StructOp fo
 - [X] Logging
 - [X] Client-server networking setup
 - [X] Implementing commands across the network
-- [ ] Pluggable storage engines -> In progress
+- [X] Pluggable storage engines 
 - [ ] Benchmarking
 
 Note : cargo run --bin 'kvs-server|kvs-client' -- [command]
