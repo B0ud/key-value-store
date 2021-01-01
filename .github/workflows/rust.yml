@@ -31,6 +31,9 @@ jobs:
       uses: codecov/codecov-action@v1.0.15
       with:
         file: cobertura.xml
+
+    - name: Bench
+        run: cargo bench --verbose
     
     
     
