@@ -33,7 +33,7 @@ jobs:
         file: cobertura.xml
 
     - name: Bench
-        run: cargo bench --verbose
+      run: cargo bench --verbose
     
     
     
